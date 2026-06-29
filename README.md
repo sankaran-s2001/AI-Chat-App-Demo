@@ -49,6 +49,22 @@ To understand how this chatbot works under the hood, read through these concepts
 >   * **Image upload:** Routed to `meta-llama/llama-4-scout-17b-16e-instruct` (Primary Vision model) and falls back to `qwen/qwen3.6-27b`.
 * If a model fails (e.g., rate limit exceeded), a `try-except` loop immediately catches the error and retries the request using the next fallback model in the list.
 
+> [!NOTE]  
+> **7. How Audio Input (Speech-to-Text) Works**
+> * **Microphone Capture:** The frontend uses the browser's native `MediaRecorder` API to capture microphone inputs as audio chunks, combining them into a WebM blob.
+> * **Interactive Visual Cues:** When recording begins, the interface dynamically applies three states:
+>   1. The microphone icon changes to a red recording dot (`🔴`).
+>   2. The text input placeholder changes to `"🎙️ Listening... Click 🔴 to Stop & Transcribe"`.
+>   3. The text input box border glows with a red pulsing animation.
+> * **Whisper Transcription:** Stopping the recording uploads the blob via a POST request to `/transcribe`. The backend calls Groq's high-speed **Whisper Large v3 Turbo** API to convert the spoken audio into text and populates the text field.
+
+> [!TIP]  
+> **8. How Audio Output (Text-to-Speech) Works**
+> * **Hybrid Architecture (Option A + B):** To speak assistant responses, the app implements a primary/fallback voice pipeline:
+>   * **Primary (Option A - Web Speech API):** Uses browser-native `speechSynthesis` to speak text instantly, locally, and for free, saving server resources.
+>   * **Fallback (Option B - Groq Orpheus API):** If browser-native synthesis fails, it queries the backend `/speak` endpoint which calls Groq's **Orpheus English TTS** (`canopylabs/orpheus-v1-english`) model to generate and stream back WAV audio bytes.
+> * **Reasoning Filtering:** Before speaking, the text is cleaned using regular expressions to strip out `<think>` reasoning tags, ensuring the user only hears the actual final answer.
+
 ---
 
 ## 🛠️ Project Directory Structure
