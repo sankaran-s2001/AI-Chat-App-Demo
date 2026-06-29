@@ -45,6 +45,9 @@
             <!-- Visual button to trigger the hidden file input -->
             <button class="attach-btn" onclick="document.getElementById('imageInput').click()" title="Attach image">🖼️</button>
             
+            <!-- Microphone button for voice transcription -->
+            <button id="micBtn" class="attach-btn mic-btn" onclick="toggleRecording()" title="Record voice">🎤</button>
+            
             <!-- Text query field -->
             <input type="text" id="question" placeholder="Ask your question..." onkeydown="handleEnter(event)" />
             

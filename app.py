@@ -1,7 +1,7 @@
 import os
 import asyncio
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, Request, File, UploadFile, HTTPException
+from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
@@ -191,3 +191,55 @@ def clear_session(request: ClearRequest):
     if request.session_id in conversation_histories:
         conversation_histories[request.session_id] = []
     return {"status": "success", "session_id": request.session_id}
+
+
+@app.post("/transcribe")
+async def transcribe(file: UploadFile = File(...)):
+    """
+    Speech-to-Text endpoint using Groq's Whisper model.
+    Transcribes audio files uploaded from client-side microphone.
+    """
+    global client
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not client:
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Groq API key not set.")
+        client = Groq(api_key=api_key)
+
+    try:
+        file_bytes = await file.read()
+        transcription = client.audio.transcriptions.create(
+            file=(file.filename or "audio.webm", file_bytes),
+            model="whisper-large-v3-turbo"
+        )
+        return {"text": transcription.text}
+    except Exception as e:
+        print(f"Transcription Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/speak")
+async def speak(text: str):
+    """
+    Text-to-Speech fallback endpoint using Groq's Orpheus model.
+    Generates and returns WAV audio bytes.
+    """
+    global client
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not client:
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Groq API key not set.")
+        client = Groq(api_key=api_key)
+
+    try:
+        response = client.audio.speech.create(
+            model="canopylabs/orpheus-v1-english",
+            voice="dan",
+            input=text,
+            response_format="wav"
+        )
+        return Response(content=response.content, media_type="audio/wav")
+    except Exception as e:
+        print(f"TTS Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+

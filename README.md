@@ -109,11 +109,14 @@ To understand how this chatbot works under the hood, read through these concepts
 * **`ChatRequest` (Pydantic Model):** Defines the data shape expected from the client (e.g., `session_id`, `prompt`, `image_base64`, `max_tokens`).
 * **`app.mount("/static", ...)`**: Tells FastAPI to serve files inside the `/static` folder (like CSS and JS) directly to the browser.
 * **`@app.post("/ask")`**: The primary endpoint. It checks if there is an image, loads the session's conversation history, determines the model list, and yields a `StreamingResponse` using an asynchronous generator.
+* **`@app.post("/transcribe")`**: Receives browser-recorded audio file bytes (`.webm` or `.wav`) and forwards them to Groq's high-speed Whisper Large v3 Turbo model, returning the transcribed text.
+* **`@app.get("/speak")`**: Receives text and uses Groq's `canopylabs/orpheus-v1-english` (voice: `dan`) to synthesize WAV audio bytes as an API fallback.
 
 ### 2. The HTML Structure (`templates/index.html`)
 * **Sidebar Panel:** Holds the button `+ New Chat` and a container `<div id="sessionsList">` where JavaScript inserts active session items dynamically.
 * **Chat Panel:** Houses `<div class="chat-box" id="chatBox">` to display message bubbles, and `<div class="input-area">` containing:
   * A hidden `<input type="file">` triggered visually by clicking the picture icon (`🖼️`).
+  * A microphone button (`🎤`) that toggles audio recording.
   * A text input box.
   * An "Ask" button.
 
@@ -121,12 +124,16 @@ To understand how this chatbot works under the hood, read through these concepts
 * Uses **CSS Flexbox** (`display: flex`) to stretch the sidebar to the left and push the chat area to fill the remaining screen space.
 * Styles message bubbles using class tags `.user` (blue, right-aligned) and `.bot` (white, left-aligned).
 * **`.thinking-block`:** Styles the reasoning thoughts from fallback reasoning models, formatting them with a light-gray background, a green left border (`border-left: 3px solid #10a37f`), and a monospace font.
+* **`.mic-btn.recording`:** Defines a glowing pulse animation (`@keyframes mic-pulse`) that blinks red when recording is in progress.
+* **`.speak-btn`:** Inline speaker icon style that appears next to model badges and grows slightly on hover.
 
 ### 4. The Client Logic (`static/script.js`)
 * **`createNewSession()`**: Generates a timestamp-based ID and registers a new chat session.
 * **`handleImageSelect()`**: Uses `FileReader()` to read an uploaded file and convert it into a Base64 string for transmission.
 * **`askQuestion()`**: Uses the JavaScript `fetch` API to POST data, and starts a `while (true)` loop using `reader.read()`. It decodes the text chunks and renders them immediately inside the chat window.
 * **`formatText()`**: A simple markdown parser that converts newlines `\n` to `<br>` and extracts `<think>...</think>` tags, wrapping them inside the styled `.thinking-block` class.
+* **`toggleRecording()`**: Uses browser `MediaRecorder` to capture audio inputs from the microphone, packaging the recorded stream chunks and uploading them to the `/transcribe` endpoint.
+* **`speakMessage()`**: Reads out the AI responses. Uses client-side Web Speech API (`speechSynthesis`) as a primary route, and falls back to fetching audio streams from the `/speak` endpoint if SpeechSynthesis is unsupported or errors. Strip `<think>` tags so thinking steps are not read aloud.
 
 ---
 

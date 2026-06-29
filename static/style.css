@@ -164,7 +164,9 @@ body {
 
 /* Model credit label at bottom of bot responses */
 .model-badge {
-    display: block;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 11px;
     color: #9ca3af;
     margin-top: 8px;
@@ -287,3 +289,51 @@ body {
     line-height: 1.55;
     font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
+
+/* Microphone active recording state */
+.mic-btn.recording {
+    color: #ef4444 !important;
+    animation: mic-pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes mic-pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Speak Response Button */
+.speak-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #9ca3af;
+    padding: 0 4px;
+    margin-left: 8px;
+    transition: color 0.15s ease, transform 0.1s ease;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.speak-btn:hover {
+    color: #10a37f;
+    transform: scale(1.15);
+}
+
+.speak-btn.playing {
+    color: #10a37f;
+    animation: mic-pulse 1.5s infinite ease-in-out;
+}
+
