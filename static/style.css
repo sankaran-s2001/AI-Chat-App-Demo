@@ -337,3 +337,28 @@ body {
     animation: mic-pulse 1.5s infinite ease-in-out;
 }
 
+/* Active Voice Recording Border Pulse */
+.input-area input[type="text"].listening-active {
+    border-color: #ef4444 !important;
+    animation: border-pulse 1.5s infinite ease-in-out;
+    background-color: #fffdfd;
+}
+
+.input-area input[type="text"].listening-active::placeholder {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+@keyframes border-pulse {
+    0% {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+}
+
+

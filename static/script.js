@@ -485,6 +485,9 @@ async function toggleRecording() {
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
         }
+        // Reset visual cues immediately
+        questionInput.placeholder = "Ask your question...";
+        questionInput.classList.remove("listening-active");
         micBtn.classList.remove("recording");
         micBtn.title = "Record voice";
         isRecording = false;
@@ -543,8 +546,13 @@ async function toggleRecording() {
             };
             
             mediaRecorder.start();
+            
+            // Set visual cues for active listening
+            questionInput.placeholder = "🎙️ Listening... Click 🔴 to Stop & Transcribe";
+            questionInput.classList.add("listening-active");
+            micBtn.innerText = "🔴";
             micBtn.classList.add("recording");
-            micBtn.title = "Click to stop recording";
+            micBtn.title = "Click 🔴 to stop recording";
             isRecording = true;
         } catch (err) {
             console.error("Microphone capture failed:", err);
