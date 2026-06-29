@@ -1,59 +1,346 @@
-let historyBox = document.getElementById("history");
-let chatBox = document.getElementById("chatBox");
+// --- State Management ---
+// Object storing active sessions: { sessionId: { id, title, messages: [] } }
+let sessions = {};
+// Keeps track of which session is currently open in the viewport
+let currentSessionId = null;
+// Stores the Base64 representation of the attached image (without MIME type header)
+let selectedImageBase64 = null;
 
-function addMessage(type, text) {
-    const messageDiv = document.createElement("div");
-    messageDiv.className = `message ${type}`;
-    messageDiv.innerHTML = text;
-    chatBox.appendChild(messageDiv);
-    chatBox.scrollTop = chatBox.scrollHeight;
+// DOM Element Selections
+const sessionsList = document.getElementById("sessionsList");
+const chatBox = document.getElementById("chatBox");
+const imagePreviewContainer = document.getElementById("imagePreviewContainer");
+const imagePreview = document.getElementById("imagePreview");
+const questionInput = document.getElementById("question");
+
+/**
+ * Helper: Converts plain text into safe HTML, supporting basic Markdown tags
+ * like **bold**, *italic*, and newlines.
+ */
+function formatText(text) {
+    let escaped = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+    // Convert &lt;think&gt;...&lt;/think&gt; to a styled reasoning block
+    escaped = escaped.replace(/&lt;think&gt;([\s\S]*?)&lt;\/think&gt;/g, "<div class='thinking-block'>💡 <b>Reasoning Process:</b><br>$1</div>");
+
+    // Convert **text** to <strong>text</strong>
+    escaped = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    // Convert *text* to <em>text</em>
+    escaped = escaped.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+    // Convert newlines to HTML break tags
+    escaped = escaped.replace(/\n/g, "<br>");
+
+    return escaped;
 }
 
-function addHistory(question) {
-    const historyItem = document.createElement("div");
-    historyItem.className = "history-item";
-    historyItem.innerText = question;
-    historyItem.onclick = function () {
-        document.getElementById("question").value = question;
+/**
+ * Initializes a new chat session.
+ * Triggered on startup or by clicking "+ New Chat".
+ */
+function createNewSession() {
+    // Generate a simple unique ID using timestamp and random number
+    const sessionId = "session_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+
+    // Register session in state
+    sessions[sessionId] = {
+        id: sessionId,
+        title: "New Chat",
+        messages: [] // Starts empty
     };
-    historyBox.appendChild(historyItem);
+
+    // Open the new session immediately
+    selectSession(sessionId);
 }
 
-async function askQuestion() {
-    let questionInput = document.getElementById("question");
-    let question = questionInput.value;
+/**
+ * Switches the active viewport to the selected session.
+ */
+function selectSession(sessionId) {
+    currentSessionId = sessionId;
+    renderSessionsList();
+    renderChatArea();
+}
 
-    if (question.trim() === "") {
-        alert("Please enter a question");
+/**
+ * Deletes a session locally and notifies the backend to clear its memory history.
+ */
+async function deleteSession(sessionId, event) {
+    // Prevent the click event from bubbling up and selecting the deleted session
+    event.stopPropagation();
+
+    // Remove from local memory state
+    delete sessions[sessionId];
+
+    // Notify backend to clear conversation history from server RAM
+    try {
+        await fetch("/clear", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId })
+        });
+    } catch (e) {
+        console.error("Failed to clear backend session memory:", e);
+    }
+
+    // Adjust selected session if we deleted the current active one
+    const remainingIds = Object.keys(sessions);
+    if (currentSessionId === sessionId) {
+        if (remainingIds.length > 0) {
+            selectSession(remainingIds[0]);
+        } else {
+            createNewSession();
+        }
+    } else {
+        renderSessionsList();
+    }
+}
+
+/**
+ * Redraws the sidebar session list.
+ */
+function renderSessionsList() {
+    sessionsList.innerHTML = "";
+
+    Object.values(sessions).forEach(session => {
+        const item = document.createElement("div");
+        item.className = `session-item ${session.id === currentSessionId ? "active" : ""}`;
+        item.onclick = () => selectSession(session.id);
+
+        // Title label text
+        const titleSpan = document.createElement("span");
+        titleSpan.innerText = session.title;
+        item.appendChild(titleSpan);
+
+        // Delete button (represented by an '×' character)
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-session-btn";
+        delBtn.innerHTML = "&times;";
+        delBtn.onclick = (e) => deleteSession(session.id, e);
+        item.appendChild(delBtn);
+
+        sessionsList.appendChild(item);
+    });
+}
+
+/**
+ * Clears the chatbox viewport and draws the message history of the current session.
+ */
+function renderChatArea() {
+    chatBox.innerHTML = "";
+
+    const activeSession = sessions[currentSessionId];
+    if (!activeSession || activeSession.messages.length === 0) {
+        // If history is empty, show default welcome template
+        const welcomeDiv = document.createElement("div");
+        welcomeDiv.className = "message bot";
+        welcomeDiv.innerText = "Hello! I am your AI assistant. Ask me anything, or attach an image to get started.";
+        chatBox.appendChild(welcomeDiv);
         return;
     }
 
-    addMessage("user", `<b>You:</b><br>${question}`);
-    addHistory(question);
+    // Loop through session messages and render bubbles
+    activeSession.messages.forEach(msg => {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${msg.role}`;
 
+        let contentHtml = `<b>${msg.role === 'user' ? 'You' : 'AI'}:</b><br>`;
+        
+        // If the user message had an image, render it inside the bubble
+        if (msg.image) {
+            contentHtml += `<img src="data:image/jpeg;base64,${msg.image}" alt="Uploaded attachment" />`;
+        }
+
+        contentHtml += formatText(msg.text);
+
+        // If the response came from a model, display the model badge credit
+        if (msg.role === 'bot' && msg.model) {
+            contentHtml += `<span class="model-badge">AI Response generated by ${msg.model}</span>`;
+        }
+
+        messageDiv.innerHTML = contentHtml;
+        chatBox.appendChild(messageDiv);
+    });
+
+    // Auto-scroll viewport to latest bubble
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+/**
+ * Handles image selection: converts image file into Base64 format for API transmission.
+ */
+function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function () {
+        // reader.result contains the data URL: "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+        // We split on the comma to extract only the raw Base64 data block
+        selectedImageBase64 = reader.result.split(",")[1];
+        
+        // Display preview thumbnail in UI
+        imagePreview.src = reader.result;
+        imagePreviewContainer.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * Clears selected image preview.
+ */
+function removeSelectedImage() {
+    document.getElementById("imageInput").value = "";
+    selectedImageBase64 = null;
+    imagePreviewContainer.style.display = "none";
+    imagePreview.src = "";
+}
+
+/**
+ * Primary submission flow. Transmits query, reads SSE streaming blocks,
+ * and updates local and backend state.
+ */
+async function askQuestion() {
+    const prompt = questionInput.value.trim();
+    
+    // Validate if there is a prompt or an attached image
+    if (prompt === "" && !selectedImageBase64) {
+        alert("Please enter a question or upload an image.");
+        return;
+    }
+
+    // Save values locally to submit
+    const currentPrompt = prompt;
+    const currentImg = selectedImageBase64;
+
+    // Reset input fields
     questionInput.value = "";
+    removeSelectedImage();
 
-    const loadingDiv = document.createElement("div");
-    loadingDiv.className = "message bot";
-    loadingDiv.id = "loading";
-    loadingDiv.innerText = "Thinking...";
-    chatBox.appendChild(loadingDiv);
+    // 1. Update Client Session state with User message
+    const activeSession = sessions[currentSessionId];
+    activeSession.messages.push({
+        role: "user",
+        text: currentPrompt,
+        image: currentImg
+    });
+
+    // Update title of session to the first user question if it was named "New Chat"
+    if (activeSession.title === "New Chat" && currentPrompt) {
+        activeSession.title = currentPrompt.length > 25 ? currentPrompt.substring(0, 22) + "..." : currentPrompt;
+        renderSessionsList();
+    }
+
+    // Redraw chat log to show the user's message immediately
+    renderChatArea();
+
+    // 2. Create the Bot response placeholder bubble with a Loading indicator
+    const botMessageDiv = document.createElement("div");
+    botMessageDiv.className = "message bot";
+    botMessageDiv.innerHTML = "<b>AI:</b><br><span id='loadingText'>Thinking...</span>";
+    chatBox.appendChild(botMessageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    try {
-        let response = await fetch(`/ask?prompt=${encodeURIComponent(question)}&max_tokens=100`);
-        let data = await response.json();
+    let botMessageText = "";
+    let modelName = "";
 
-        document.getElementById("loading").remove();
-        addMessage("bot", `<b>AI:</b><br>${data.answer}`);
+    try {
+        // 3. Initiate POST request requesting stream output
+        const response = await fetch("/ask", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                session_id: currentSessionId,
+                prompt: currentPrompt,
+                image_base64: currentImg,
+                max_tokens: 2048
+            })
+        });
+
+        // Remove the temporary "Thinking..." loading element
+        const loadingElement = document.getElementById("loadingText");
+        if (loadingElement) loadingElement.remove();
+
+        // 4. Set up Streaming Reader to capture chunks as they stream from FastAPI
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+
+        // Loop until the stream concludes
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+
+            // Detect if the chunk starts with our model signature tag: [[MODEL:name]]
+            if (chunk.includes("[[MODEL:")) {
+                const match = chunk.match(/\[\[MODEL:(.*?)\]\]/);
+                if (match) {
+                    modelName = match[1];
+                    // Remove tag metadata from display content
+                    const cleanChunk = chunk.replace(match[0], "");
+                    botMessageText += cleanChunk;
+                } else {
+                    botMessageText += chunk;
+                }
+            } else {
+                botMessageText += chunk;
+            }
+
+            // Render accumulated text using safe HTML helper
+            botMessageDiv.innerHTML = `<b>AI:</b><br>${formatText(botMessageText)}`;
+
+            // Inject the model indicator badge if present
+            if (modelName) {
+                let badge = botMessageDiv.querySelector(".model-badge");
+                if (!badge) {
+                    badge = document.createElement("span");
+                    badge.className = "model-badge";
+                    botMessageDiv.appendChild(badge);
+                }
+                badge.innerText = `AI Response generated by ${modelName}`;
+            }
+
+            // Keep scrolling during active text production
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // 5. Success: Save Bot response in session history state
+        activeSession.messages.push({
+            role: "bot",
+            text: botMessageText,
+            model: modelName
+        });
+
     } catch (error) {
-        document.getElementById("loading").remove();
-        addMessage("bot", "Error: Unable to get response from model.");
+        console.error(error);
+        const loading = document.getElementById("loadingText");
+        if (loading) loading.remove();
+        
+        const errorText = "Error: Failed to fetch stream from API.";
+        botMessageDiv.innerHTML = `<b>AI:</b><br><span style="color: #ef4444;">${errorText}</span>`;
+        
+        activeSession.messages.push({
+            role: "bot",
+            text: errorText
+        });
     }
 }
 
+/**
+ * Triggers submission when Enter key is pressed in the input bar.
+ */
 function handleEnter(event) {
     if (event.key === "Enter") {
         askQuestion();
     }
 }
+
+// Initialize application state on start
+createNewSession();

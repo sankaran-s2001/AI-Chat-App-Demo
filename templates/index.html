@@ -1,33 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Chat Demo</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nobeth chat demo</title>
+    <!-- Link to the external CSS stylesheet -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
 <div class="container">
 
+    <!-- Sidebar: Manages multiple active chat sessions -->
     <div class="sidebar">
-        <h2>Chat History</h2>
-        <div id="history"></div>
+        <h2>Nobeth chat demo</h2>
+        <!-- Button to initialize a new session -->
+        <button class="new-chat-btn" onclick="createNewSession()">+ New Chat</button>
+        <!-- Container to list active sessions dynamically -->
+        <div id="sessionsList"></div>
     </div>
 
+    <!-- Chat Area: Holds current session dialogue and message inputs -->
     <div class="chat-area">
+        <!-- Message list scrollable viewport -->
         <div class="chat-box" id="chatBox">
-            <div class="message bot">
-                Hello! Ask me anything.
+            <div class="message bot" id="welcomeMessage">
+                Hello! I am your AI assistant. Ask me anything, or attach an image to get started.
             </div>
         </div>
 
+        <!-- Image Preview Container: Displays thumbnail of selected image before sending -->
+        <div id="imagePreviewContainer" style="display: none;">
+            <div class="preview-wrapper">
+                <img id="imagePreview" src="" alt="Selected Image Preview" />
+                <button id="removeImageBtn" onclick="removeSelectedImage()" title="Remove image">×</button>
+            </div>
+        </div>
+
+        <!-- Input Bar: Houses attachment buttons, text field, and submission controls -->
         <div class="input-area">
+            <!-- Hidden file input for image uploads -->
+            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)" />
+            
+            <!-- Visual button to trigger the hidden file input -->
+            <button class="attach-btn" onclick="document.getElementById('imageInput').click()" title="Attach image">🖼️</button>
+            
+            <!-- Text query field -->
             <input type="text" id="question" placeholder="Ask your question..." onkeydown="handleEnter(event)" />
-            <button onclick="askQuestion()">Ask</button>
+            
+            <!-- Submit button -->
+            <button class="send-btn" onclick="askQuestion()">Ask</button>
         </div>
     </div>
 
 </div>
 
+<!-- Link to external JavaScript file containing client-side logic -->
 <script src="/static/script.js"></script>
 </body>
 </html>

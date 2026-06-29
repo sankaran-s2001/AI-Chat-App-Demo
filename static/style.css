@@ -1,87 +1,289 @@
+/* --- Core Base Styles --- */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f7f7f8;
+    color: #374151;
 }
 
+/* --- Container: Flexbox handles splitting sidebar and main chat panel --- */
 .container {
     display: flex;
     height: 100vh;
+    overflow: hidden;
 }
 
+/* --- Sidebar styling: Sleek dark theme --- */
 .sidebar {
     width: 260px;
     background: #202123;
-    color: white;
+    color: #ececf1;
     padding: 15px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
 }
 
 .sidebar h2 {
-    font-size: 20px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.history-item {
-    background: #343541;
-    padding: 10px;
-    margin-bottom: 8px;
+/* --- New Chat Button: Standard hollow outline design --- */
+.new-chat-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: 1px solid #4b5563;
+    color: white;
     border-radius: 6px;
     cursor: pointer;
+    text-align: left;
     font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
+.new-chat-btn:hover {
+    background: #2a2b32;
+    border-color: #6b7280;
+}
+
+/* --- Chat Session List Items in Sidebar --- */
+#sessionsList {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.session-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13.5px;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #d1d5db;
+}
+
+.session-item:hover {
+    background: #2a2b32;
+    color: #ffffff;
+}
+
+/* Active session highlighting */
+.session-item.active {
+    background: #343541;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.delete-session-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+    display: none; /* Hidden by default, visible on hover */
+    line-height: 1;
+}
+
+.session-item:hover .delete-session-btn {
+    display: block;
+}
+
+.delete-session-btn:hover {
+    color: #ef4444;
+}
+
+/* --- Main Chat Window Area --- */
 .chat-area {
     flex: 1;
     display: flex;
     flex-direction: column;
+    background: #ffffff;
 }
 
 .chat-box {
     flex: 1;
-    padding: 20px;
+    padding: 24px;
     overflow-y: auto;
+    background: #f7f7f8;
 }
 
+/* --- Message Bubbles layout --- */
 .message {
-    padding: 12px;
-    margin-bottom: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
     border-radius: 8px;
     max-width: 80%;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 15px;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+/* User Messages align right (light blue background) */
 .user {
     background: #d1e7ff;
+    color: #1e3a8a;
     margin-left: auto;
+    border-bottom-right-radius: 2px;
 }
 
+/* Bot Messages align left (white background with thin border) */
 .bot {
-    background: white;
-    border: 1px solid #ddd;
+    background: #ffffff;
+    color: #1f2937;
+    margin-right: auto;
+    border: 1px solid #e5e7eb;
+    border-bottom-left-radius: 2px;
 }
 
+/* Embedded uploaded image display inside the bubble */
+.message img {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 6px;
+    margin-top: 10px;
+    border: 1px solid #e5e7eb;
+    display: block;
+}
+
+/* Model credit label at bottom of bot responses */
+.model-badge {
+    display: block;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 8px;
+    font-style: italic;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 4px;
+}
+
+/* --- Image Upload Preview Block (Positioned above input area) --- */
+#imagePreviewContainer {
+    padding: 12px 24px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Relative wrapper manages position of the red deletion 'x' bubble */
+.preview-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+#imagePreview {
+    max-height: 80px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    display: block;
+}
+
+#removeImageBtn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#removeImageBtn:hover {
+    background: #dc2626;
+}
+
+/* --- Input Area Panel --- */
 .input-area {
     display: flex;
-    padding: 15px;
-    background: white;
-    border-top: 1px solid #ddd;
+    padding: 16px 24px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    align-items: center;
 }
 
-input {
+/* Attachment button */
+.attach-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px 12px;
+    color: #6b7280;
+    transition: color 0.15s ease;
+    outline: none;
+}
+
+.attach-btn:hover {
+    color: #10a37f;
+}
+
+/* Text bar */
+.input-area input[type="text"] {
     flex: 1;
-    padding: 12px;
-    font-size: 16px;
+    padding: 12px 16px;
+    font-size: 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-button {
+.input-area input[type="text"]:focus {
+    border-color: #10a37f;
+    box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+}
+
+/* Ask button */
+.send-btn {
     padding: 12px 20px;
     background: #10a37f;
     color: white;
     border: none;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 15px;
+    font-weight: 500;
+    margin-left: 12px;
+    transition: background 0.15s ease;
 }
 
-button:hover {
+.send-btn:hover {
     background: #0e8f70;
+}
+
+/* --- Reasoning / Thinking block style --- */
+.thinking-block {
+    background: #f3f4f6;
+    border-left: 3px solid #10a37f;
+    padding: 12px 16px;
+    margin: 10px 0;
+    font-size: 13.5px;
+    color: #4b5563;
+    border-radius: 4px;
+    line-height: 1.55;
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
