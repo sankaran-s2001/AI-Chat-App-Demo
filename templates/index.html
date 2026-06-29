@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Chat Demo</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="sidebar">
+        <h2>Chat History</h2>
+        <div id="history"></div>
+    </div>
+
+    <div class="chat-area">
+        <div class="chat-box" id="chatBox">
+            <div class="message bot">
+                Hello! Ask me anything.
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="question" placeholder="Ask your question..." onkeydown="handleEnter(event)" />
+            <button onclick="askQuestion()">Ask</button>
+        </div>
+    </div>
+
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
